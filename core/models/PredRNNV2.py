@@ -147,5 +147,12 @@ class RNN(nn.Module):
 
             x_gen = self.srcnn(x_gen)
             next_frames.append(x_gen)
+
+            for i in range(0, self.num_layers):
+                decouple_loss.append(
+                    torch.mean(torch.abs(torch.cosine_similarity(delta_c_list[i], delta_m_list[i], dim=2))))
+
+        decouple_loss = torch.mean(torch.stack(decouple_loss, dim=0))
+
         next_frames = torch.stack(next_frames, dim=0).permute(1, 0, 2, 3, 4).contiguous()
-        return next_frames
+        return next_frames,decouple_loss

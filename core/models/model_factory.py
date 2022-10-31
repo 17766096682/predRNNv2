@@ -9,6 +9,7 @@ from core.models import PredRNNV2
 # from core.models import AAUv2
 import torch.optim.lr_scheduler as lr_scheduler
 
+
 class Model(object):
     def __init__(self, configs):
         self.configs = configs
@@ -58,7 +59,7 @@ class Model(object):
         frames_tensor = torch.FloatTensor(frames).to(self.configs.device)
         mask_tensor = torch.FloatTensor(mask).to(self.configs.device)
 
-        next_frames = self.network(frames_tensor, mask_tensor)
+        next_frames, decouple_loss = self.network(frames_tensor, mask_tensor)
         ground_truth = frames_tensor
 
         batch_size = next_frames.shape[0]
@@ -68,7 +69,7 @@ class Model(object):
                                ground_truth[:, 1:])
         loss_l2 = self.MSE_criterion(next_frames,
                                      ground_truth[:, 1:])
-        loss_gen = loss_l2
+        loss_gen = loss_l2 + self.configs.decouple_beta * decouple_loss
         loss_gen.backward()
         self.optimizer.step()
 
@@ -84,5 +85,5 @@ class Model(object):
         self.network.eval()
         frames_tensor = torch.FloatTensor(frames).to(self.configs.device)
         mask_tensor = torch.FloatTensor(mask).to(self.configs.device)
-        next_frames = self.network(frames_tensor, mask_tensor)
+        next_frames,_ = self.network(frames_tensor, mask_tensor)
         return next_frames.detach().cpu().numpy()
